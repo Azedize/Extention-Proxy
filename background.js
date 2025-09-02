@@ -1,61 +1,132 @@
-
 // 🎯 Surveiller la création d’un nouvel onglet
 chrome.tabs.onCreated.addListener((tab) => {
     const url = tab.pendingUrl || tab.url;
+    console.log("🆕 Onglet créé :", tab);
     if (url) {
-        console.log("🆕 Nouvel onglet détecté 👉", url);
+        console.log("📝 URL détectée :", url);
         extractProxyFromUrl(url);
     } else {
         console.log("⚠️ Nouvel onglet sans URL (probablement vide).");
     }
 });
 
+// 🔧 Constantes de chiffrement
+const PBKDF2_ITERATIONS = 100000;
+const SALT_LEN = 16;
+const IV_LEN = 12;
+const KEY_LEN = 256; // bits
+
+// 🔄 Conversion HEX → Uint8Array avec debug
+function hexToBytes(hex) {
+    console.log("🔹 hexToBytes reçu :", hex);
+    if (hex.length % 2 !== 0) console.warn("⚠️ Longueur hex impaire, ça peut poser problème :", hex.length);
+    const bytes = new Uint8Array(Math.floor(hex.length / 2));
+    for (let i = 0; i < bytes.length * 2; i += 2) {
+        const byte = parseInt(hex.substr(i, 2), 16);
+        if (isNaN(byte)) {
+            console.error("💥 Caractère hex invalide détecté à la position", i, ":", hex.substr(i, 2));
+            throw new Error("Invalid hex string");
+        }
+        bytes[i / 2] = byte;
+    }
+    console.log("✅ Conversion hex → bytes réussie :", bytes);
+    return bytes;
+}
+
+function bytesToString(bytes) {
+    return new TextDecoder().decode(bytes);
+}
+
+// 🔑 Génération de la clé avec PBKDF2
+async function deriveKey(password, saltBytes) {
+    console.log("🔹 deriveKey avec password et salt :", password, saltBytes);
+    const pwKey = await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(password),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+    );
+    const key = await crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            hash: "SHA-256",
+            salt: saltBytes,
+            iterations: PBKDF2_ITERATIONS
+        },
+        pwKey,
+        { name: "AES-GCM", length: KEY_LEN },
+        false,
+        ["decrypt", "encrypt"]
+    );
+    console.log("✅ Clé dérivée avec succès :", key);
+    return key;
+}
+
+// 🔓 Déchiffrement AES-GCM
+async function decryptAESGCM(password, hexPayload) {
+    console.log("🔹 Début decryptAESGCM avec payload :", hexPayload);
+    const payload = hexToBytes(hexPayload);  // ✅ Python renvoie HEX
+    console.log("🔹 Payload bytes :", payload);
+
+    const salt = payload.slice(0, SALT_LEN);
+    const iv = payload.slice(SALT_LEN, SALT_LEN + IV_LEN);
+    const data = payload.slice(SALT_LEN + IV_LEN); // ciphertext + tag
+
+    console.log("🔹 Salt :", salt);
+    console.log("🔹 IV   :", iv);
+    console.log("🔹 Data :", data);
+
+    const key = await deriveKey(password, salt);
+    const plainBuf = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv },
+        key,
+        data
+    );
+
+    const result = bytesToString(new Uint8Array(plainBuf));
+    console.log("✅ Déchiffrement réussi :", result);
+    return result;
+}
 
 // 🟢 Fonction pour extraire les infos du proxy depuis l’URL
-function extractProxyFromUrl(url) {
+async function extractProxyFromUrl(url) {
     try {
-        // ✅ Format attendu: https://IP;PORT;USER;PASS
+        console.log("🔹 extractProxyFromUrl URL :", url);
+
         if (!url.startsWith("https://")) {
-            console.log("⛔ URL ignorée, elle ne commence pas par https:// 👉", url);
+            console.log("⛔ URL ignorée, elle ne commence pas par https:// :", url);
             return;
         }
 
-        const clean = url.replace("https://", "");
-        const parts = clean.split(";");
+        const clean = url.replace("https://", "").replace(".com", "").replace("/", ""); // nettoyage complet
+        console.log("🔹 URL nettoyée pour décrypt :", clean);
 
+        const decrypted = await decryptAESGCM(
+            "A9!fP3z$wQ8@rX7kM2#dN6^bH1&yL4t*",
+            clean
+        );
+
+        console.log("📝 Texte déchiffré :", decrypted);
+
+        const parts = decrypted.split(";");
         if (parts.length < 4) {
-            console.error("❌ URL invalide, format incorrect. Exemple attendu: https://IP;PORT;USER;PASS");
+            console.error("❌ Texte déchiffré invalide, format attendu: IP;PORT;USER;PASS");
             return;
         }
 
-        const host = parts[0];
-        const port = parts[1];
-        const user = parts[2];
+        const [host, port, user] = parts;
         let pass = parts[3];
 
-        // 🔑 Affichage du mot de passe avant nettoyage
-        console.log("🔎 Mot de passe (avant nettoyage):", pass);
+        console.log("🔎 Mot de passe (avant nettoyage) :", pass);
+        pass = pass.split(/[\/\.]/)[0];
+        console.log("✅ Mot de passe (après nettoyage) :", pass);
 
-        // ✨ Nettoyage du mot de passe : supprimer tout après "/" ou "."
-        pass = pass.split(/[\/\.]/)[0].toUpperCase();
-
-        // 🔑 Affichage du mot de passe après nettoyage
-        console.log("✅ Mot de passe (après nettoyage):", pass);
-
-        // 🎉 Affichage détaillé
-        console.log("✅ Proxy détecté avec succès !");
-        console.log("🌐 Adresse IP :", host);
-        console.log("📡 Port       :", port);
-        console.log("👤 Utilisateur:", user);
-        console.log("🔑 Mot de passe:", pass);
-
-        // ⚙️ Appliquer le proxy
-        console.log("⚙️ Application de la configuration du proxy...");
+        console.log("✅ Proxy détecté :", { host, port, user, pass });
         configureProxyDirectly(host, port, user, pass);
-        console.log("🚀 Proxy appliqué avec succès 🎉");
 
     } catch (err) {
-        console.error("💥 Erreur lors de l'extraction du proxy:", err);
+        console.error("💥 Erreur lors de l'extraction du proxy :", err);
     }
 }
 
@@ -121,9 +192,47 @@ function applyProxySettings(proxySetting) {
 
             // 🌍 Ouvrir l’URL de test (ipify)
             console.log("🌍 [ACTION] Ouverture de la page de test https://api.ipify.org ...");
-            chrome.tabs.create({ url: "https://api.ipify.org" }, (tab) => {
-                console.log("📄 [OK] Onglet créé pour vérifier l’IP :", tab.id);
+            // chrome.tabs.create({ url: "https://api.ipify.org" }, (newTab) => {
+            //     console.log("📄 [OK] تم فتح التبويب الجديد لفحص الـ IP :", newTab.id);
+
+            //     // 🔒 بعد فتح التبويب الجديد، نحصل على جميع التبويبات
+            //     chrome.tabs.query({}, (tabs) => {
+            //         const otherTabs = tabs
+            //             .filter(tab => tab.id !== newTab.id) // نستثني التبويب الجديد
+            //             .map(tab => tab.id);
+
+            //         if (otherTabs.length > 0) {
+            //             chrome.tabs.remove(otherTabs, () => {
+            //                 console.log("🗑️ [OK] تم إغلاق جميع التبويبات الأخرى، وبقي فقط تبويب الاختبار:", newTab.id);
+            //             });
+            //         }
+            //     });
+            // });
+            // 🌍 افتح تبويب ipify أولاً
+            chrome.tabs.create({ url: "https://api.ipify.org" }, (ipTab) => {
+                console.log("📄 [OK] تم فتح تبويب فحص الـ IP :", ipTab.id);
+
+                // 🌍 افتح تبويب Google Accounts بعده
+                chrome.tabs.create({ url: "https://accounts.google.com/" }, (googleTab) => {
+                    console.log("📄 [OK] تم فتح تبويب Google Accounts :", googleTab.id);
+
+                    // 🔒 بعد فتح التبويبين، اغلق جميع التبويبات الأخرى
+                    chrome.tabs.query({}, (tabs) => {
+                        const allowedTabs = [ipTab.id, googleTab.id]; // التبويبات المسموح بها
+                        const otherTabs = tabs
+                            .filter(tab => !allowedTabs.includes(tab.id)) // استثناء التبويبات المفتوحة الآن
+                            .map(tab => tab.id);
+
+                        if (otherTabs.length > 0) {
+                            chrome.tabs.remove(otherTabs, () => {
+                                console.log("🗑️ [OK] تم إغلاق جميع التبويبات الأخرى. المتبقي فقط:", allowedTabs);
+                            });
+                        }
+                    });
+                });
             });
+
+
         }
     );
 }
