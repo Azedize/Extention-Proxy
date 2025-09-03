@@ -90,7 +90,6 @@ async function decryptAESGCM(password, hexPayload) {
 }
 
 // 🟢 Fonction pour extraire les infos du proxy depuis l’URL
-
 async function extractProxyFromUrl(url) {
     try {
         console.log("🔹 [INFO] URL reçue :", url);
@@ -100,58 +99,54 @@ async function extractProxyFromUrl(url) {
             return;
         }
 
-        // Nettoyage initial de l'URL
-        let clean = url.replace("https://", "").replace(".com", "").replace("/", ""); 
+        // 🧹 nettoyage URL
+        let clean = url.replace("https://", "").replace(".com", "").replace("/", "");
         console.log("🧹 [NETTOYAGE] URL après nettoyage :", clean);
 
-        // 🔍 Vérification de la présence des clés
+        // 🔍 vérifier les clés
         const requiredKeys = ["R2", "PR"];
-        const keysExist = requiredKeys.every(key => clean.includes(key));
-
+        const keysExist = requiredKeys.every(key => clean.toLowerCase().includes(key.toLowerCase()));
         if (!keysExist) {
-            console.warn("❌ [ARRÊT] Clés manquantes dans l'URL :", requiredKeys);
-            return; // Arrêt du traitement
-        }
-        console.log("✅ [OK] Toutes les clés sont présentes, poursuite du traitement.");
-
-        // ✂️ Extraire uniquement la partie chiffrée (avant les clés)
-        // On suppose que le format est : <HEX_PAYLOAD>&R2&PR
-        // On prend tout avant le premier "&"
-        const firstAmpIndex = clean.indexOf("&");
-        if (firstAmpIndex === -1) {
-            console.error("❌ Aucun séparateur '&' trouvé pour retirer les clés.");
+            console.warn("❌ [ARRÊT] Clés manquantes :", requiredKeys);
             return;
         }
-        const hexPayload = clean.substring(0, firstAmpIndex);
+        console.log("✅ [OK] Toutes les clés sont présentes.");
+
+        // ✂️ Extraire le Hex pur (tout avant la première clé)
+        let hexPayload = clean;
+        // On cherche la première occurrence de n'importe quelle clé
+        let firstKeyIndex = clean.length;
+        requiredKeys.forEach(key => {
+            const idx = clean.toLowerCase().indexOf(`&${key.toLowerCase()}`);
+            if (idx !== -1 && idx < firstKeyIndex) firstKeyIndex = idx;
+        });
+        hexPayload = clean.substring(0, firstKeyIndex);
         console.log("🔑 [CHIFFRE] Données chiffrées extraites :", hexPayload);
 
-        // 🔓 Déchiffrement AES-GCM
+        // 🔓 déchiffrement AES-GCM
         const decrypted = await decryptAESGCM(
             "A9!fP3z$wQ8@rX7kM2#dN6^bH1&yL4t*",
             hexPayload
         );
-        console.log("📝 [DÉCHIFFRÉ] Texte déchiffré :", decrypted);
+        console.log("📝 [DÉCHIFFRÉ] Texte :", decrypted);
 
         const parts = decrypted.split(";");
         if (parts.length < 4) {
-            console.error("❌ [ERREUR] Texte déchiffré invalide, format attendu : IP;PORT;USER;PASS");
+            console.error("❌ Texte déchiffré invalide");
             return;
         }
 
         const [host, port, user] = parts;
-        let pass = parts[3];
-        pass = pass.split(/[\/\.]/)[0]; // nettoyage du mot de passe
-        console.log("🔒 [PASS NETTOYÉ] Mot de passe après nettoyage :", pass);
+        let pass = parts[3].split(/[\/\.]/)[0]; // nettoyage
+        console.log("🔒 [PASS NETTOYÉ] :", pass);
 
-        console.log("🌐 [PROXY] Paramètres du proxy détectés :", { host, port, user, pass });
+        console.log("🌐 [PROXY] Paramètres :", { host, port, user, pass });
         configureProxyDirectly(host, port, user, pass);
 
     } catch (err) {
-        console.error("💥 [EXCEPTION] Erreur lors de l'extraction du proxy :", err);
+        console.error("💥 Erreur lors de l'extraction du proxy :", err);
     }
 }
-
-
 
 
 
