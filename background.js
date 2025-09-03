@@ -90,45 +90,109 @@ async function decryptAESGCM(password, hexPayload) {
 }
 
 // 🟢 Fonction pour extraire les infos du proxy depuis l’URL
+// async function extractProxyFromUrl(url) {
+//     try {
+//         console.log("🔹 extractProxyFromUrl URL :", url);
+
+//         if (!url.startsWith("https://")) {
+//             console.log("⛔ URL ignorée, elle ne commence pas par https:// :", url);
+//             return;
+//         }
+
+//         const clean = url.replace("https://", "").replace(".com", "").replace("/", ""); // nettoyage complet
+//         console.log("🔹 URL nettoyée pour décrypt :", clean);
+
+//         const decrypted = await decryptAESGCM(
+//             "A9!fP3z$wQ8@rX7kM2#dN6^bH1&yL4t*",
+//             clean
+//         );
+
+//         console.log("📝 Texte déchiffré :", decrypted);
+
+//         const parts = decrypted.split(";");
+//         if (parts.length < 4) {
+//             console.error("❌ Texte déchiffré invalide, format attendu: IP;PORT;USER;PASS");
+//             return;
+//         }
+
+//         const [host, port, user] = parts;
+//         let pass = parts[3];
+
+//         console.log("🔎 Mot de passe (avant nettoyage) :", pass);
+//         pass = pass.split(/[\/\.]/)[0];
+//         console.log("✅ Mot de passe (après nettoyage) :", pass);
+
+//         console.log("✅ Proxy détecté :", { host, port, user, pass });
+//         configureProxyDirectly(host, port, user, pass);
+
+//     } catch (err) {
+//         console.error("💥 Erreur lors de l'extraction du proxy :", err);
+//     }
+// }
+
+
+
+
+
+
 async function extractProxyFromUrl(url) {
     try {
-        console.log("🔹 extractProxyFromUrl URL :", url);
+        console.log("🔹 [INFO] URL reçue :", url);
 
         if (!url.startsWith("https://")) {
-            console.log("⛔ URL ignorée, elle ne commence pas par https:// :", url);
+            console.log("⛔ [IGNORÉ] L'URL ne commence pas par https:// :", url);
             return;
         }
 
-        const clean = url.replace("https://", "").replace(".com", "").replace("/", ""); // nettoyage complet
-        console.log("🔹 URL nettoyée pour décrypt :", clean);
+        const clean = url.replace("https://", "").replace(".com", "").replace("/", ""); 
+        console.log("🧹 [NETTOYAGE] URL après nettoyage :", clean);
 
+        // 🔍 Vérification de la présence des clés
+        const requiredKeys = ["R2", "PR"];
+        const keysExist = requiredKeys.every(key => clean.includes(key));
+
+        if (!keysExist) {
+            console.warn("❌ [ARRÊT] Clés manquantes dans l'URL :", requiredKeys);
+            return; // Arrêt du traitement
+        }
+        console.log("✅ [OK] Toutes les clés sont présentes, poursuite du traitement.");
+
+        // ✂️ Retrait des clés de l'URL avant le déchiffrement
+        let hexPayload = clean;
+        requiredKeys.forEach(key => {
+            hexPayload = hexPayload.replace(`&${key}`, "");
+        });
+        console.log("🔑 [CHIFFRE] Données chiffrées après retrait des clés :", hexPayload);
+
+        // 🔓 Déchiffrement AES-GCM
         const decrypted = await decryptAESGCM(
             "A9!fP3z$wQ8@rX7kM2#dN6^bH1&yL4t*",
-            clean
+            hexPayload
         );
-
-        console.log("📝 Texte déchiffré :", decrypted);
+        console.log("📝 [DÉCHIFFRÉ] Texte déchiffré :", decrypted);
 
         const parts = decrypted.split(";");
         if (parts.length < 4) {
-            console.error("❌ Texte déchiffré invalide, format attendu: IP;PORT;USER;PASS");
+            console.error("❌ [ERREUR] Texte déchiffré invalide, format attendu : IP;PORT;USER;PASS");
             return;
         }
 
         const [host, port, user] = parts;
         let pass = parts[3];
+        pass = pass.split(/[\/\.]/)[0]; // nettoyage du mot de passe
+        console.log("🔒 [PASS NETTOYÉ] Mot de passe après nettoyage :", pass);
 
-        console.log("🔎 Mot de passe (avant nettoyage) :", pass);
-        pass = pass.split(/[\/\.]/)[0];
-        console.log("✅ Mot de passe (après nettoyage) :", pass);
-
-        console.log("✅ Proxy détecté :", { host, port, user, pass });
+        console.log("🌐 [PROXY] Paramètres du proxy détectés :", { host, port, user, pass });
         configureProxyDirectly(host, port, user, pass);
 
     } catch (err) {
-        console.error("💥 Erreur lors de l'extraction du proxy :", err);
+        console.error("💥 [EXCEPTION] Erreur lors de l'extraction du proxy :", err);
     }
 }
+
+
+
+
 
 
 // ⚙️ Sauvegarde et application du proxy
