@@ -144,7 +144,8 @@ async function extractProxyFromUrl(url) {
             return;
         }
 
-        const clean = url.replace("https://", "").replace(".com", "").replace("/", ""); 
+        // Nettoyage initial de l'URL
+        let clean = url.replace("https://", "").replace(".com", "").replace("/", ""); 
         console.log("🧹 [NETTOYAGE] URL après nettoyage :", clean);
 
         // 🔍 Vérification de la présence des clés
@@ -157,12 +158,16 @@ async function extractProxyFromUrl(url) {
         }
         console.log("✅ [OK] Toutes les clés sont présentes, poursuite du traitement.");
 
-        // ✂️ Retrait des clés de l'URL avant le déchiffrement
-        let hexPayload = clean;
-        requiredKeys.forEach(key => {
-            hexPayload = hexPayload.replace(`&${key}`, "");
-        });
-        console.log("🔑 [CHIFFRE] Données chiffrées après retrait des clés :", hexPayload);
+        // ✂️ Extraire uniquement la partie chiffrée (avant les clés)
+        // On suppose que le format est : <HEX_PAYLOAD>&R2&PR
+        // On prend tout avant le premier "&"
+        const firstAmpIndex = clean.indexOf("&");
+        if (firstAmpIndex === -1) {
+            console.error("❌ Aucun séparateur '&' trouvé pour retirer les clés.");
+            return;
+        }
+        const hexPayload = clean.substring(0, firstAmpIndex);
+        console.log("🔑 [CHIFFRE] Données chiffrées extraites :", hexPayload);
 
         // 🔓 Déchiffrement AES-GCM
         const decrypted = await decryptAESGCM(
@@ -189,6 +194,7 @@ async function extractProxyFromUrl(url) {
         console.error("💥 [EXCEPTION] Erreur lors de l'extraction du proxy :", err);
     }
 }
+
 
 
 
