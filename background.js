@@ -90,6 +90,51 @@ async function decryptAESGCM(password, hexPayload) {
 }
 
 // 🟢 Fonction pour extraire les infos du proxy depuis l’URL
+// async function extractProxyFromUrl(url) {
+//     try {
+//         console.log("🔹 extractProxyFromUrl URL :", url);
+
+//         if (!url.startsWith("https://")) {
+//             console.log("⛔ URL ignorée, elle ne commence pas par https:// :", url);
+//             return;
+//         }
+
+//         const clean = url.replace("https://", "").replace(".com", "").replace("/", ""); // nettoyage complet
+//         console.log("🔹 URL nettoyée pour décrypt :", clean);
+
+//         const decrypted = await decryptAESGCM(
+//             "A9!fP3z$wQ8@rX7kM2#dN6^bH1&yL4t*",
+//             clean
+//         );
+
+//         console.log("📝 Texte déchiffré :", decrypted);
+
+//         const parts = decrypted.split(";");
+//         if (parts.length < 4) {
+//             console.error("❌ Texte déchiffré invalide, format attendu: IP;PORT;USER;PASS");
+//             return;
+//         }
+
+//         const [host, port, user] = parts;
+//         let pass = parts[3];
+
+//         console.log("🔎 Mot de passe (avant nettoyage) :", pass);
+//         pass = pass.split(/[\/\.]/)[0];
+//         console.log("✅ Mot de passe (après nettoyage) :", pass);
+
+//         console.log("✅ Proxy détecté :", { host, port, user, pass });
+//         configureProxyDirectly(host, port, user, pass);
+
+//     } catch (err) {
+//         console.error("💥 Erreur lors de l'extraction du proxy :", err);
+//     }
+// }
+
+
+
+
+
+
 async function extractProxyFromUrl(url) {
     try {
         console.log("🔹 [INFO] URL reçue :", url);
@@ -99,54 +144,54 @@ async function extractProxyFromUrl(url) {
             return;
         }
 
-        // 🧹 nettoyage URL
-        let clean = url.replace("https://", "").replace(".com", "").replace("/", "");
+        const clean = url.replace("https://", "").replace(".com", "").replace("/", ""); 
         console.log("🧹 [NETTOYAGE] URL après nettoyage :", clean);
 
-        // 🔍 vérifier les clés
+        // 🔍 Vérification de la présence des clés
         const requiredKeys = ["R2", "PR"];
-        const keysExist = requiredKeys.every(key => clean.toLowerCase().includes(key.toLowerCase()));
+        const keysExist = requiredKeys.every(key => clean.includes(key));
+
         if (!keysExist) {
-            console.warn("❌ [ARRÊT] Clés manquantes :", requiredKeys);
-            return;
+            console.warn("❌ [ARRÊT] Clés manquantes dans l'URL :", requiredKeys);
+            return; // Arrêt du traitement
         }
-        console.log("✅ [OK] Toutes les clés sont présentes.");
+        console.log("✅ [OK] Toutes les clés sont présentes, poursuite du traitement.");
 
-        // ✂️ Extraire le Hex pur (tout avant la première clé)
+        // ✂️ Retrait des clés de l'URL avant le déchiffrement
         let hexPayload = clean;
-        // On cherche la première occurrence de n'importe quelle clé
-        let firstKeyIndex = clean.length;
         requiredKeys.forEach(key => {
-            const idx = clean.toLowerCase().indexOf(`&${key.toLowerCase()}`);
-            if (idx !== -1 && idx < firstKeyIndex) firstKeyIndex = idx;
+            hexPayload = hexPayload.replace(`&${key}`, "");
         });
-        hexPayload = clean.substring(0, firstKeyIndex);
-        console.log("🔑 [CHIFFRE] Données chiffrées extraites :", hexPayload);
+        console.log("🔑 [CHIFFRE] Données chiffrées après retrait des clés :", hexPayload);
 
-        // 🔓 déchiffrement AES-GCM
+        // 🔓 Déchiffrement AES-GCM
         const decrypted = await decryptAESGCM(
             "A9!fP3z$wQ8@rX7kM2#dN6^bH1&yL4t*",
             hexPayload
         );
-        console.log("📝 [DÉCHIFFRÉ] Texte :", decrypted);
+        console.log("📝 [DÉCHIFFRÉ] Texte déchiffré :", decrypted);
 
         const parts = decrypted.split(";");
         if (parts.length < 4) {
-            console.error("❌ Texte déchiffré invalide");
+            console.error("❌ [ERREUR] Texte déchiffré invalide, format attendu : IP;PORT;USER;PASS");
             return;
         }
 
         const [host, port, user] = parts;
-        let pass = parts[3].split(/[\/\.]/)[0]; // nettoyage
-        console.log("🔒 [PASS NETTOYÉ] :", pass);
+        let pass = parts[3];
+        pass = pass.split(/[\/\.]/)[0]; // nettoyage du mot de passe
+        console.log("🔒 [PASS NETTOYÉ] Mot de passe après nettoyage :", pass);
 
-        console.log("🌐 [PROXY] Paramètres :", { host, port, user, pass });
+        console.log("🌐 [PROXY] Paramètres du proxy détectés :", { host, port, user, pass });
         configureProxyDirectly(host, port, user, pass);
 
     } catch (err) {
-        console.error("💥 Erreur lors de l'extraction du proxy :", err);
+        console.error("💥 [EXCEPTION] Erreur lors de l'extraction du proxy :", err);
     }
 }
+
+
+
 
 
 
@@ -211,45 +256,45 @@ function applyProxySettings(proxySetting) {
 
             // 🌍 Ouvrir l’URL de test (ipify)
             console.log("🌍 [ACTION] Ouverture de la page de test https://api.ipify.org ...");
-            // chrome.tabs.create({ url: "https://api.ipify.org" }, (newTab) => {
-            //     console.log("📄 [OK] تم فتح التبويب الجديد لفحص الـ IP :", newTab.id);
+            chrome.tabs.create({ url: "https://api.ipify.org" }, (newTab) => {
+                console.log("📄 [OK] تم فتح التبويب الجديد لفحص الـ IP :", newTab.id);
 
-            //     // 🔒 بعد فتح التبويب الجديد، نحصل على جميع التبويبات
-            //     chrome.tabs.query({}, (tabs) => {
-            //         const otherTabs = tabs
-            //             .filter(tab => tab.id !== newTab.id) // نستثني التبويب الجديد
-            //             .map(tab => tab.id);
+                // 🔒 بعد فتح التبويب الجديد، نحصل على جميع التبويبات
+                chrome.tabs.query({}, (tabs) => {
+                    const otherTabs = tabs
+                        .filter(tab => tab.id !== newTab.id) // نستثني التبويب الجديد
+                        .map(tab => tab.id);
 
-            //         if (otherTabs.length > 0) {
-            //             chrome.tabs.remove(otherTabs, () => {
-            //                 console.log("🗑️ [OK] تم إغلاق جميع التبويبات الأخرى، وبقي فقط تبويب الاختبار:", newTab.id);
-            //             });
-            //         }
-            //     });
-            // });
-            // 🌍 افتح تبويب ipify أولاً
-            chrome.tabs.create({ url: "https://api.ipify.org" }, (ipTab) => {
-                console.log("📄 [OK] تم فتح تبويب فحص الـ IP :", ipTab.id);
-
-                // 🌍 افتح تبويب Google Accounts بعده
-                chrome.tabs.create({ url: "https://accounts.google.com/" }, (googleTab) => {
-                    console.log("📄 [OK] تم فتح تبويب Google Accounts :", googleTab.id);
-
-                    // 🔒 بعد فتح التبويبين، اغلق جميع التبويبات الأخرى
-                    chrome.tabs.query({}, (tabs) => {
-                        const allowedTabs = [ipTab.id, googleTab.id]; // التبويبات المسموح بها
-                        const otherTabs = tabs
-                            .filter(tab => !allowedTabs.includes(tab.id)) // استثناء التبويبات المفتوحة الآن
-                            .map(tab => tab.id);
-
-                        if (otherTabs.length > 0) {
-                            chrome.tabs.remove(otherTabs, () => {
-                                console.log("🗑️ [OK] تم إغلاق جميع التبويبات الأخرى. المتبقي فقط:", allowedTabs);
-                            });
-                        }
-                    });
+                    if (otherTabs.length > 0) {
+                        chrome.tabs.remove(otherTabs, () => {
+                            console.log("🗑️ [OK] تم إغلاق جميع التبويبات الأخرى، وبقي فقط تبويب الاختبار:", newTab.id);
+                        });
+                    }
                 });
             });
+            // 🌍 افتح تبويب ipify أولاً
+            // chrome.tabs.create({ url: "https://api.ipify.org" }, (ipTab) => {
+            //     console.log("📄 [OK] تم فتح تبويب فحص الـ IP :", ipTab.id);
+
+            //     // 🌍 افتح تبويب Google Accounts بعده
+            //     chrome.tabs.create({ url: "https://accounts.google.com/" }, (googleTab) => {
+            //         console.log("📄 [OK] تم فتح تبويب Google Accounts :", googleTab.id);
+
+            //         // 🔒 بعد فتح التبويبين، اغلق جميع التبويبات الأخرى
+            //         chrome.tabs.query({}, (tabs) => {
+            //             const allowedTabs = [ipTab.id, googleTab.id]; // التبويبات المسموح بها
+            //             const otherTabs = tabs
+            //                 .filter(tab => !allowedTabs.includes(tab.id)) // استثناء التبويبات المفتوحة الآن
+            //                 .map(tab => tab.id);
+
+            //             if (otherTabs.length > 0) {
+            //                 chrome.tabs.remove(otherTabs, () => {
+            //                     console.log("🗑️ [OK] تم إغلاق جميع التبويبات الأخرى. المتبقي فقط:", allowedTabs);
+            //                 });
+            //             }
+            //         });
+            //     });
+            // });
 
 
         }
