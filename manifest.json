@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Auto Proxy Config & IP Checker",
-  "version": "1.3.0",
-  "description": "Configure un proxy depuis une URL et ouvre https://api.ipify.org pour tester l'adresse IP.",
+  "name": "EX2",
+  "version": "1.0.0",
+  "description": "",
 
   "permissions": [
     "storage",
@@ -30,5 +30,7 @@
     "24": "icons/icon2.png",
     "32": "icons/icon3.png",
     "48": "icons/icon4.png"
-  }
+  },
+  "key": "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCLwKtmGF75JrNT4BAfuhNXpI6yX4b/D3HxFMQ+8LN8TpGE1+8eJmKpfEmK3dzz3leZPETPgheIVneUysUWMQjkLzlEXszO63F/QfRhzndr6yvT9XTvkNwUtXMXTFlw7KEqeW1Et1yaPsIA+nHk9Jral1kboFg/c2RmyrquROsH1ORgmKgY4rG7ZP+vHqzllfguuKqbiPuy9lKqMYHTLvmdnwnwI0lYAf8g3sLMs0pbT+iClv/lFHhB69/aRfy3GMIvQO16Xs4REwMAyJitIoG9mX98MoueV89Q1PCxEylUiF3UXbIz2qTeRFMZIjlBLJbsTjdDhHhvdlCXA/eD/SH3AgMBAAECggEAAqw2LGc5pKsZFISRql98XwgWXF4JVHHL/fclzDVDhpRwROyUpGayn3AUP54XKK7PQeMRGF836lwKzCYiyMqAMJOJLJF5Bc3dR1t+6rbZIr46jYhefA1Tz3NlpRU9ib/4adFEIxIFkaDhcvPi2Y2mkN68qxOWyBrHfIJSxUr9CSoY6GCcfpFizL/WXh+FnJEHNcyDJdyxRMwiSZ79b5hx5nNcA1v8Bp4/G2aLs1DRRNqwIVW4qYpbg5RcRpTP6zOb6EsLMS/MgmDgj3yZufiXiVgzuitaFJ5A5CjeHnVugU7ijikUYn6mwrDqSaggQCCMmZ1bqFddolxjoX092H1/oQKBgQDCJImuK3hnG1tsFl4VAM9GBjD69B42qK6faC/6xz8fM46sk4z9c8tZyomqeYZb/ffBoUARg4Q7BEXPhYx1SpX/4M7oiFiUwZ4vyH89R1z0tCjhCPrAxaxEeLlGdpZvu0ztIccgfzwprYaE49Di2GCAw6Y+KO5IVRD6dpVD89nn8QKBgQC4R75JU1xPDctBm4XhDY0f1sZwY85AAp87ZPNK6iFF+5XxS+BOEiH613iTqixY9SE2McBvtgH1W4gy0vO7JvB00pr5ephq9nRHz0Tba4l9kF9yf10swz+YF35V0zDv2jJs5oFTwY3BO+lVb2hOilqPfLkX0kb7HAsrveE8ba3QZwKBgG/VjFoAQINkhu1klR2UMdIsjtqA9UaXNMAuzDSxwfK/SFixRm5Z3bIDsfm5t2QWkDnCIZ31HJ7Cf1Rjod2O8YlMfuQEZsKKJg1weZtbGHj9ru6ytX+GXw2yXUfx2AbU5iNTadmWcZmwk+TJNvL1oeGK0qDMAzc3iWg+Fw3l0oiBAoGAf9/g7nb3FjBnO/aU10+U/2QFPZY0V/y5y/hIT1Lalfp32QIi+2nfxHXiyO0Mawpm6nlppNsyzrSedU4nLVZfA2HlgnsM6yRsGix9Bpm/xa76XLR+zoIKThr3YszzJ21NEn59fcZQ/Kb7SnrNcbrWDr2onxwefz+9jLPtaQZe178CgYAcZx7Cv4yQUdKxA8IRo6gkowl/CfmAHX/DmVSs+SqGIfcI/jl9XLSW3Rap+2CA8HpUQyV5qmBgnFm0xIsJfJy/oOwdY1bLnBFh/JnM61rqrJDQzdfEzHncDss79QQEjXpx0G8ClwpQ/eh4k1EL+20S6Lkv7nANysuDzKuSTNU+MA=="
+
 }
